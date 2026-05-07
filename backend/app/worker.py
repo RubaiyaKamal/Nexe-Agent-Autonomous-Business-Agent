@@ -25,6 +25,8 @@ celery_app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,
     broker_connection_retry_on_startup=True,
+    # solo pool avoids Windows shared-memory PermissionError (WinError 5)
+    worker_pool="solo",
     **({} if _ssl_opts is None else {
         "broker_use_ssl": _ssl_opts,
         "redis_backend_use_ssl": _ssl_opts,
