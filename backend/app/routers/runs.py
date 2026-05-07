@@ -85,10 +85,22 @@ async def get_run_logs(
     )
 
 
+def _require_user_from_query(token: str = Query(...)) -> dict:
+    """Auth dependency for SSE — reads token from ?token= query param."""
+    from app.services.auth_service import decode_token
+    try:
+        payload = decode_token(token)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token required")
+    return {"user_id": uuid.UUID(payload["sub"]), "email": payload["email"]}
+
+
 @router.get("/{run_id}/status/stream")
 async def run_status_stream(
     run_id: uuid.UUID,
-    current_user: dict = Depends(require_current_user),
+    current_user: dict = Depends(_require_user_from_query),
 ) -> StreamingResponse:
     async def event_generator() -> AsyncGenerator[str, None]:
         async for event in subscribe_run(run_id):

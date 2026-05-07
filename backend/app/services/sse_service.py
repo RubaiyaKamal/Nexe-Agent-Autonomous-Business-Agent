@@ -1,4 +1,5 @@
 import json
+import ssl
 import uuid
 from collections.abc import AsyncGenerator
 
@@ -10,7 +11,10 @@ settings = get_settings()
 
 
 def _get_redis() -> aioredis.Redis:
-    return aioredis.from_url(settings.redis_url, decode_responses=True)
+    kwargs: dict = {"decode_responses": True}
+    if settings.redis_url.startswith("rediss://"):
+        kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
+    return aioredis.from_url(settings.redis_url, **kwargs)
 
 
 async def publish_run_event(run_id: uuid.UUID, event_type: str, payload: dict) -> None:
