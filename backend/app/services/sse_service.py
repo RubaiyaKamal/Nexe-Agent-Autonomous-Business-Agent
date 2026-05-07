@@ -13,10 +13,7 @@ settings = get_settings()
 def _get_redis() -> aioredis.Redis:
     kwargs: dict = {"decode_responses": True}
     if settings.redis_url.startswith("rediss://"):
-        _ctx = ssl.create_default_context()
-        _ctx.check_hostname = False
-        _ctx.verify_mode = ssl.CERT_NONE
-        kwargs["ssl"] = _ctx
+        kwargs["ssl_cert_reqs"] = "none"
     return aioredis.from_url(settings.redis_url, **kwargs)
 
 
