@@ -1,0 +1,239 @@
+# GraphQL Schema: Autonomous Business Agent — Audit Log Queries
+# Covers flexible filtering of execution logs and reasoning traces.
+# Write operations (goal submission, plan approval) use the REST API.
+
+scalar UUID
+scalar DateTime
+scalar JSON
+
+# ── Enums ─────────────────────────────────────────────────────────
+
+enum GoalStatus {
+  RECEIVED
+  PLANNING
+  PLAN_READY
+  APPROVED
+  EXECUTING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum PlanStatus {
+  DRAFT
+  APPROVED
+  CANCELLED
+}
+
+enum TaskType {
+  DATA_RETRIEVAL
+  CONTENT_GENERATION
+  NOTIFICATION_DISPATCH
+}
+
+enum TaskStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+  CANCELLED
+}
+
+enum ComplexityLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum LogStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+  CANCELLED
+  RETRYING
+}
+
+# ── Types ──────────────────────────────────────────────────────────
+
+type Goal {
+  id: UUID!
+  text: String!
+  submittedBy: UUID!
+  submittedAt: DateTime!
+  status: GoalStatus!
+  plan: Plan
+  runs: [ExecutionRun!]!
+}
+
+type Plan {
+  id: UUID!
+  goalId: UUID!
+  createdAt: DateTime!
+  status: PlanStatus!
+  taskCount: Int!
+  tasks: [Task!]!
+}
+
+type Task {
+  id: UUID!
+  planId: UUID!
+  description: String!
+  dependencies: [UUID!]!
+  complexity: ComplexityLevel!
+  type: TaskType!
+  timeoutSeconds: Int!
+  orderIndex: Int!
+  status: TaskStatus!
+  isCriticalPath: Boolean!
+  logEntries(runId: UUID): [LogEntry!]!
+  reasoningTraces(runId: UUID): [ReasoningTrace!]!
+}
+
+type ExecutionRun {
+  id: UUID!
+  planId: UUID!
+  triggeredBy: UUID!
+  startedAt: DateTime!
+  endedAt: DateTime
+  status: RunStatus!
+  autoExecute: Boolean!
+  tasksTotal: Int!
+  tasksSucceeded: Int!
+  tasksFailed: Int!
+  tasksSkipped: Int!
+  elapsedSeconds: Int
+  logs(filter: LogFilter): LogConnection!
+  traces: [ReasoningTrace!]!
+  goal: Goal!
+}
+
+type LogEntry {
+  id: UUID!
+  runId: UUID!
+  taskId: UUID
+  timestamp: DateTime!
+  status: LogStatus!
+  reasoningSummary: String!
+  inputSnapshot: JSON!
+  outputSnapshot: JSON!
+  errorContext: String
+  retryCount: Int!
+  task: Task
+  run: ExecutionRun!
+}
+
+type ReasoningTrace {
+  id: UUID!
+  runId: UUID!
+  taskId: UUID!
+  stepIndex: Int!
+  currentState: JSON!
+  decision: String!
+  rationale: String!
+  createdAt: DateTime!
+  task: Task!
+  run: ExecutionRun!
+}
+
+# ── Pagination ─────────────────────────────────────────────────────
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  totalCount: Int!
+  limit: Int!
+  offset: Int!
+}
+
+type LogConnection {
+  nodes: [LogEntry!]!
+  pageInfo: PageInfo!
+}
+
+type RunConnection {
+  nodes: [ExecutionRun!]!
+  pageInfo: PageInfo!
+}
+
+type GoalConnection {
+  nodes: [Goal!]!
+  pageInfo: PageInfo!
+}
+
+# ── Filters ────────────────────────────────────────────────────────
+
+input LogFilter {
+  runId: UUID
+  taskId: UUID
+  status: LogStatus
+  from: DateTime
+  to: DateTime
+  limit: Int = 100
+  offset: Int = 0
+}
+
+input RunFilter {
+  status: RunStatus
+  triggeredBy: UUID
+  from: DateTime
+  to: DateTime
+  limit: Int = 20
+  offset: Int = 0
+}
+
+input GoalFilter {
+  status: GoalStatus
+  submittedBy: UUID
+  from: DateTime
+  to: DateTime
+  limit: Int = 20
+  offset: Int = 0
+}
+
+# ── Query ──────────────────────────────────────────────────────────
+
+type Query {
+  # Goals
+  goal(id: UUID!): Goal
+  goals(filter: GoalFilter): GoalConnection!
+
+  # Runs
+  run(id: UUID!): ExecutionRun
+  runs(filter: RunFilter): RunConnection!
+
+  # Logs — primary audit query surface
+  logs(filter: LogFilter!): LogConnection!
+
+  # Single log entry by ID
+  logEntry(id: UUID!): LogEntry
+
+  # Reasoning traces for a specific run/task
+  reasoningTraces(runId: UUID!, taskId: UUID): [ReasoningTrace!]!
+
+  # Audit summary: count of entries per status for a run
+  runAuditSummary(runId: UUID!): RunAuditSummary!
+}
+
+type RunAuditSummary {
+  runId: UUID!
+  totalLogEntries: Int!
+  byStatus: [StatusCount!]!
+  firstEventAt: DateTime
+  lastEventAt: DateTime
+}
+
+type StatusCount {
+  status: LogStatus!
+  count: Int!
+}

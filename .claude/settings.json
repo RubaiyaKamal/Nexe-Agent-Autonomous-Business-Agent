@@ -1,0 +1,11 @@
+{
+  "project": "Nexe Agent — Autonomous Business Agent",
+  "resumeContext": {
+    "branch": "1-autonomous-business-agent",
+    "nextCommand": "/sp.implement",
+    "nextTask": "T001",
+    "tasksFile": "specs/1-autonomous-business-agent/tasks.md",
+    "status": "SDD complete — ready for implementation",
+    "phaseSummary": "Phases 1-9 defined. MVP = Phases 1-4 (T001-T037)."
+  }
+}
