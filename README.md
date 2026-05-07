@@ -32,42 +32,43 @@ AI-powered agent that accepts natural-language business goals, decomposes them i
 
 ## Prerequisites
 
-- Docker + Docker Compose
+- Python 3.11+
+- Node.js 20+
+- A [Neon](https://neon.tech) PostgreSQL database (free tier)
+- An [Upstash](https://upstash.com) Redis database (free tier)
 - OpenAI API key
 
 ## Quick Start
 
 ```bash
 cp .env.example .env
-# Edit .env — set OPENAI_API_KEY and JWT_SECRET
+# Edit .env — fill in DATABASE_URL, REDIS_URL, OPENAI_API_KEY, JWT_SECRET
+```
 
-docker compose up --build
+**Terminal 1 — API**
+```bash
+cd backend
+pip install -r requirements.txt
+alembic upgrade head      # first time only
+uvicorn app.main:app --reload --port 8000
+```
 
-# In another terminal, run DB migration
-docker compose exec api alembic upgrade head
+**Terminal 2 — Celery worker**
+```bash
+cd backend
+celery -A app.worker worker --loglevel=info
+```
+
+**Terminal 3 — Frontend**
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 API: http://localhost:8000/docs  
 Frontend: http://localhost:3000  
 GraphQL playground: http://localhost:8000/graphql
-
-## Local Development (without Docker)
-
-```bash
-# Backend
-cd backend
-python -m venv .venv && .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-
-# Worker (separate terminal)
-celery -A app.worker worker --loglevel=info
-
-# Frontend
-cd frontend
-npm install
-npm run dev
-```
 
 ## Running Tests
 

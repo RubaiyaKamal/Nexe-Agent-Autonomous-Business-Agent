@@ -31,9 +31,33 @@ AI-powered autonomous agent that accepts natural-language business goals, decomp
 
 ## How to Start the Stack
 
+Prerequisites: Python 3.11+, Node.js 20+. No Docker needed — PostgreSQL and Redis run as hosted services (Neon + Upstash, configured in `.env`).
+
+**1. Copy and fill in the env file**
 ```bash
-docker compose up -d
-docker compose exec api alembic upgrade head   # first time only
+cp .env.example .env
+# Fill in DATABASE_URL, REDIS_URL, OPENAI_API_KEY, JWT_SECRET
+```
+
+**2. Backend API** (terminal 1)
+```bash
+cd backend
+pip install -r requirements.txt
+alembic upgrade head        # first time only
+uvicorn app.main:app --reload --port 8000
+```
+
+**3. Celery worker** (terminal 2)
+```bash
+cd backend
+celery -A app.worker worker --loglevel=info
+```
+
+**4. Frontend** (terminal 3)
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 Then open http://localhost:3000
