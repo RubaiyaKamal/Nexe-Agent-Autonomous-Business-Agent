@@ -5,7 +5,7 @@ import api from "@/lib/api";
 
 const MAX_LEN = 2000;
 
-export default function GoalForm() {
+export default function GoalForm({ onSubmitted }: { onSubmitted?: () => void }) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -19,6 +19,7 @@ export default function GoalForm() {
     setLoading(true);
     try {
       const { data } = await api.post("/api/v1/goals", { text });
+      onSubmitted?.();
       router.push(`/goals/${data.id}/plan`);
     } catch (err: any) {
       setError(err.response?.data?.detail ?? "Submission failed");

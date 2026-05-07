@@ -23,12 +23,16 @@ export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [showForm, setShowForm] = useState(false);
 
+  const fetchGoals = () => {
+    api.get("/api/v1/goals").then((r) => setGoals(r.data)).catch(() => {});
+  };
+
   useEffect(() => {
     if (!localStorage.getItem("access_token")) {
       router.replace("/login");
       return;
     }
-    api.get("/api/v1/goals").then((r) => setGoals(r.data)).catch(() => {});
+    fetchGoals();
   }, [router]);
 
   return (
@@ -44,7 +48,7 @@ export default function GoalsPage() {
       </div>
       {showForm && (
         <div className="border rounded p-4">
-          <GoalForm />
+          <GoalForm onSubmitted={fetchGoals} />
         </div>
       )}
       <table className="w-full text-sm border rounded overflow-hidden">
